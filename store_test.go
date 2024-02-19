@@ -112,7 +112,7 @@ func FuzzKeyValueStore(f *testing.F) {
 
 		gotValue, err := store.Get(key)
 		if err != nil {
-			t.Errorf("Failed to put key: %v", err)
+			t.Errorf("Failed to get key: %v", err)
 		}
 
 		if string(gotValue) != string(value) {
