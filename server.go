@@ -37,7 +37,9 @@ func (s *KVServer) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	NotFound(rw)
+	encode(map[string]string{
+		"message": "not found",
+	}, rw, 404)
 }
 
 // HandleList gets all keys and returns them in a JSON array
@@ -73,7 +75,9 @@ func (s *KVServer) HandleGet(key string, rw http.ResponseWriter) {
 func (s *KVServer) HandleDelete(key string, rw http.ResponseWriter) {
 	exists, err := s.kvStore.Delete(key)
 	if !exists {
-		NotFound(rw)
+		encode(map[string]string{
+			"message": fmt.Sprintf("No such key %s", key),
+		}, rw, 404)
 		return
 	}
 
@@ -105,14 +109,6 @@ func ServerError(rw http.ResponseWriter, err error) {
 	encode(map[string]string{
 		"message": "server error",
 	}, rw, 500)
-}
-
-// NotFound writes a 404 response with a json body
-// indicating the given resource was not found
-func NotFound(rw http.ResponseWriter) {
-	encode(map[string]string{
-		"message": "server error",
-	}, rw, 404)
 }
 
 // encode is a generic function for writing JSON responses

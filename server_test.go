@@ -150,3 +150,35 @@ func TestPutKeyEndpoint(t *testing.T) {
 	})
 
 }
+
+func TestRouting(t *testing.T) {
+	t.Run("it returns a 404 if the route does not exist", func(t *testing.T) {
+		server, w := newServer()
+
+		server.ServeHTTP(w, httptest.NewRequest("POST", "/", nil))
+
+		if w.Result().StatusCode != 404 {
+			t.Errorf("Expected 404, got %d", w.Result().StatusCode)
+		}
+	})
+
+	t.Run("it handles keys with a / in them", func(t *testing.T) {
+		server, w := newServer()
+
+		body := bytes.NewBufferString("some-data")
+		server.ServeHTTP(w, httptest.NewRequest("PUT", "/some/key/with/slashes", body))
+
+		if w.Result().StatusCode != 200 {
+			t.Errorf("Expected 200, got %d", w.Result().StatusCode)
+		}
+
+		value, err := server.kvStore.Get("some/key/with/slashes")
+		if err != nil {
+			t.Errorf("Failed to get key with slashes: %v", err)
+		}
+
+		if string(value) != "some-data" {
+			t.Errorf("Expected some-data, got %s", string(value))
+		}
+	})
+}
