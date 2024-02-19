@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"testing"
 )
 
@@ -10,13 +11,11 @@ func TestCanGetAndStoreData(t *testing.T) {
 	err := store.Put("my-key", []byte("Some value"))
 	if err != nil {
 		t.Errorf("Failed to put key: %v", err)
-		return
 	}
 
 	data, err := store.Get("my-key")
 	if err != nil {
 		t.Errorf("Failed to get key: %v", err)
-		return
 	}
 
 	if string(data) != "Some value" {
@@ -30,24 +29,20 @@ func TestCanRemoveKeys(t *testing.T) {
 	err := store.Put("my-key", []byte("Some value"))
 	if err != nil {
 		t.Errorf("Failed to put key: %v", err)
-		return
 	}
 
 	exists, err := store.Delete("my-key")
 	if err != nil {
 		t.Errorf("Failed to delete key: %v", err)
-		return
 	}
 
 	if !exists {
 		t.Errorf("Expected key to exist")
-		return
 	}
 
 	data, err := store.Get("my-key")
 	if err != nil {
 		t.Errorf("Failed to get key: %v", err)
-		return
 	}
 
 	if data != nil {
@@ -65,7 +60,6 @@ func TestCanListKeys(t *testing.T) {
 	keys, err := store.GetKeys()
 	if err != nil {
 		t.Errorf("Failed to get keys, %v", err)
-		return
 	}
 
 	if len(keys) != 3 {
@@ -103,4 +97,37 @@ func TestCanSafelyReadAndWriteConcurrently(t *testing.T) {
 	t.Run("write3", parallelWriteTest(kv))
 	t.Run("read2", parallelReadTest(kv))
 
+}
+
+func FuzzKeyValueStore(f *testing.F) {
+	f.Add("some-key", []byte("some-value"))
+
+	store := NewKeyValueStore()
+
+	f.Fuzz(func(t *testing.T, key string, value []byte) {
+		err := store.Put(key, value)
+		if err != nil {
+			t.Errorf("Failed to put key: %v", err)
+		}
+
+		gotValue, err := store.Get(key)
+		if err != nil {
+			t.Errorf("Failed to put key: %v", err)
+		}
+
+		if string(gotValue) != string(value) {
+			t.Errorf("Expected %s, got %s", string(value), string(gotValue))
+		}
+	})
+}
+
+func BenchmarkPutKeys(b *testing.B) {
+	store := NewKeyValueStore()
+	b.RunParallel(func(pb *testing.PB) {
+		i := 0
+		for pb.Next() {
+			store.Put(fmt.Sprintf("key:%d", i), []byte("some-value"))
+			i++
+		}
+	})
 }
